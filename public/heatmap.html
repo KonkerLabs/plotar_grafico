@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Heatmaps</title>
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+      }
+#floating-panel {
+  position: absolute;
+  top: 10px;
+  left: 25%;
+  z-index: 5;
+  background-color: #fff;
+  padding: 5px;
+  border: 1px solid #999;
+  text-align: center;
+  font-family: 'Roboto','sans-serif';
+  line-height: 30px;
+  padding-left: 10px;
+}
+
+      #floating-panel {
+        background-color: #fff;
+        border: 1px solid #999;
+        left: 25%;
+        padding: 5px;
+        position: absolute;
+        top: 10px;
+        z-index: 5;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!--
+    <div id="floating-panel">
+      <button onclick="addMarker(37.782551, -122.445368);">Toggle Heatmap</button>
+      <button onclick="//changeGradient()">Change gradient</button>
+      <button onclick="//changeRadius()">Change radius</button>
+      <button onclick="//changeOpacity()">Change opacity</button>
+    </div>!-->
+    <div id="map"></div>
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+   <script type="text/javascript">
+      window.onload = function () {
+        load();
+      }
+
+
+      function load(){
+        var refreshInterval=1000; //de quanto em quanto tempo o ajax deve consultar novamente a plataforma em milissegundos
+        var API_URI="api.demo.konkerlabs.net";//domínio do servidor api da konker
+        var API_USER="";//usuário do device
+        var API_PASS="brun3P6pX1Cb";//senha do device
+        var API_CHANNEL="local";//canal de subscrição
+        //função que plota um gráfico de linha no tempo
+        plotKonkerTimeseriesChart(refreshInterval,
+          API_URI,
+          API_USER,
+          API_PASS,
+          API_CHANNEL);
+        }
+
+
+
+
+
+
+
+    ////////////////////////////////////////////////////////////////////////////////
+    /// IMPLEMENTAÇÃO DA FUNÇÃO DE PLOTAGEM
+
+        function plotKonkerTimeseriesChart(refreshInterval,
+                                API_URI,
+                                API_USER,
+                                API_PASS,
+                                API_CHANNEL) {
+
+
+          var lastUpdate;
+    	    var map;
+          var heatmap;
+          var pointArray=[];
+
+          initMap();
+
+
+          //***
+          //1o pego o timestamp do ultimo update
+          $.ajax({
+              url: "https://" + API_USER + ":" + API_PASS+ "@" + API_URI + "/sub/" + API_USER + "/" + API_CHANNEL,
+              type: 'GET',
+              dataType: 'jsonp',
+              success:function(data) {
+                lastUpdate=data[0].meta.timestamp;
+                console.log(lastUpdate);
+                //***
+                //2o ploto o gráfico com offset de 100segundos
+                plotOffsetPoints(lastUpdate+40000, 100)
+              }
+          });
+
+
+
+          function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+              zoom: 4,
+              center: {lat: 0, lng: 0},
+              mapTypeId: google.maps.MapTypeId.ROADMAP
+            });
+
+            heatmap = new google.maps.visualization.HeatmapLayer({
+              data: pointArray,
+              map: map
+            });
+          }
+
+
+          //addMarker(37.782551, -122.445368);
+          function addMarker(lat,lng) {
+            var latLng = new google.maps.LatLng(lat, lng);
+            pointArray.push(latLng);//new LatLng(lat,lng));
+            heatmap.setData(pointArray);
+            return pointArray;
+          }
+
+
+          function plotOffsetPoints(lastUpdate, secondsOffset) {
+            //faço um subscribe com offset de (lastUpdate - secondsOffset)
+            $.ajax({
+                url: "https://" + API_USER + ":" + API_PASS+ "@" + API_URI + "/sub/" + API_USER + "/" + API_CHANNEL + "?offset="+ String(lastUpdate - (secondsOffset * 1000)),
+                dataType: 'jsonp',
+                success:function(data) {
+                  var dataSliced = data.slice(data.length-100, data.length-1);
+                  lastUpdate=dataSliced[dataSliced.length-1].meta.timestamp;
+                  //plota o gráfico com o resultado do ajax
+                  plotPoints(dataSliced);
+                }
+            });
+          }
+
+          //PLOTAR UMA LINHA NO TEMPO DE UM ARRAY JSON
+          function plotPoints(jsonarray) {
+            for( i = 0; i < jsonarray.length; i++) {
+                addMarker(jsonarray[i].data.latitude, jsonarray[i].data.longitude);
+            }
+
+          }
+
+
+          //***
+          //3o Chamada ciclica para a plataforma. A repetição é dada por refreshInterval
+          setInterval(function(){
+              $.ajax({
+
+                url: "https://" + API_USER +  ":" + API_PASS +"@" + API_URI+ "/sub/" + API_USER +"/" + API_CHANNEL,
+                type: 'GET',
+                dataType: 'jsonp',
+                success:function(data) {
+                  handleNewData(data);
+                }
+            })
+          }, refreshInterval);
+
+
+
+          function handleNewData(data){
+            //só plota se o timestamp do ultimo dado retornado for diferente
+            if (data[0].meta.timestamp > lastUpdate) {
+
+    			       addMarker(data[0].data.latitude, data[0].data.longitude);
+
+            }
+
+
+            //atualiza a variável lastUpdate
+            lastUpdate=data[0].meta.timestamp;
+
+          }
+
+
+    	        //addMarker(37.782551, -122.445368);
+          function addMarker(lat,lng) {
+            var latLng = new google.maps.LatLng(lat, lng);
+            pointArray.push(latLng);//new LatLng(lat,lng));
+            heatmap.setData(pointArray);
+            centralizarMapa(lat,lng,15)
+            return pointArray;
+          }
+
+
+            function centralizarMapa(latitude, longitude, mapzoom){
+                var latLng = new google.maps.LatLng(latitude, longitude);
+                map.setCenter(latLng);
+                map.setZoom(mapzoom);
+            }
+
+        }
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCgiPuL9vVKqcl2JLQ8_FGSpZgIOQK5uXg&libraries=visualization">
+    </script>
+  </body>
+</html>
