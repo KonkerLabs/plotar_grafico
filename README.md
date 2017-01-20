@@ -2,7 +2,10 @@
 
 `http-server` is a simple, zero-configuration command-line http server.  It is powerful enough for production usage, but it's simple and hackable enough to be used for testing, local development, and learning.
 
-![](https://github.com/nodeapps/http-server/raw/master/screenshots/public.png)
+# Directly go to HTML graphic example
+https://github.com/KonkerLabs/plotar_grafico/blob/master/public/linha.html
+
+
 
 # Installing globally:
 
@@ -32,7 +35,7 @@ This will install `http-server` globally so that it may be run from the command 
 
      node bin/http-server
 
-*Now you can visit http://localhost:8080 to view your server*
+*Now you can visit http://localhost:8080/linha.html to view your server*
 
 ## Available Options:
 
