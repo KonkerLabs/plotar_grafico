@@ -12,14 +12,14 @@
       window.onload = function () {
 
       // Dado este ponto de conexão informado na plataforma:
-      // https://api.demo.konkerlabs.net:443/sub/fsoh2687ru3m/{canal}
+      // http://api.demo.konkerlabs.net:443/sub/fsoh2687ru3m/{canal}
       // Fiz um roteamento na plataforma e o canal de saida que configurei é /out
       // O usuário deste gerado pela plataforma foi: fsoh2687ru3m
       // A senha gerada foi: SENHA_DO_DEVICE
       // Então a chamada GET pode ser feita da seguinte forma:
       /*
       $.ajax({
-          url: "https://fsoh2687ru3m:SENHA_DO_DEVICE@api.demo.konkerlabs.net/sub/fsoh2687ru3m/out",
+          url: "http://fsoh2687ru3m:SENHA_DO_DEVICE@api.demo.konkerlabs.net/sub/fsoh2687ru3m/out",
           type: 'GET',
           dataType: 'jsonp',
           success:function(data) {
@@ -31,10 +31,15 @@
       //Valores a serem passados para esta função:
       //variáveis de configuração de conexão com a plataforma KONKER
       //e configuração do gráfico a ser plotado
+      //http://api.demo.konkerlabs.net:80/sub/qsvsjr79epn9/out
       var refreshInterval=1000; //de quanto em quanto tempo o ajax deve consultar novamente a plataforma em milissegundos
-      var API_URI="api.demo.konkerlabs.net";//domínio do servidor api da konker
-      var API_USER="";//usuário do device
-      var API_PASS="mj25Vpa8womQ";//senha do device
+
+      //ALTERE AQUI COM SEUS DADOS
+      var API_URI="api.demo.konkerlabs.net";//domínio do servidor api da konker<<<TROQUE PELO DOMÍNIO QUE VOCÊ USA
+      var API_USER="qsvsjr79epn9";//usuário do device <<<TROQUE PELO SEU DEVICE
+      var API_PASS="xkpXkyio7noV";//senha do device<<<TROQUE PELO SEU DEVICE
+
+
       var API_CHANNEL="out";//canal de subscrição
       var chart_bindToId="chartContainer";//id da <div> em que o gráfico será plotado
       var chart_XData="meta[timestamp]";//item do json correspondente aos dados do eixo X
@@ -84,41 +89,105 @@
                             chart_LineName,
                             chart_TooltipUnit,
                             chart_Xformat) {
-      var lastUpdate;
+      var lastUpdate=0;
       var chart;
+      var plotedPoints=0;
 
       //***
-      //1o pego o timestamp do ultimo update
-      $.ajax({
-          url: "https://" + API_USER + ":" + API_PASS+ "@" + API_URI + "/sub/" + API_USER + "/" + API_CHANNEL,
-          type: 'GET',
-          dataType: 'jsonp',
-          success:function(data) {
-            lastUpdate=data[0].meta.timestamp;
-            console.log(lastUpdate);
-            //***
-            //2o ploto o gráfico com offset de 100segundos
-            plotOffsetPoints(lastUpdate+40000, 100)
-          }
-      });
+
+      var lastUpdateOffset=0;
 
 
-      function plotOffsetPoints(lastUpdate, secondsOffset) {
-        //faço um subscribe com offset de (lastUpdate - secondsOffset)
-        $.ajax({
-            url: "https://" + API_USER + ":" + API_PASS+ "@" + API_URI + "/sub/" + API_USER + "/" + API_CHANNEL + "?offset="+ String(lastUpdate - (secondsOffset * 1000)),
+
+    getHistory(100); //83
+
+
+
+
+    function continuousUpdate(){
+      //***
+      //3o Chamada ciclica para a plataforma. A repetição é dada por refreshInterval
+      setInterval(function(){
+          $.ajax({
+
+            url: "http://" + API_USER +  ":" + API_PASS +"@" + API_URI+ "/sub/" + API_USER +"/" + API_CHANNEL,
+            type: 'GET',
             dataType: 'jsonp',
             success:function(data) {
-              var dataSliced = data.slice(data.length-100, data.length-1);
-              lastUpdate=dataSliced[dataSliced.length-1].meta.timestamp;
-              //plota o gráfico com o resultado do ajax
-              plotPoints(dataSliced);
+
+              plotNewData(data);
+              lastUpdate= data[data.length-1].meta.timestamp;
+
+            }
+        })
+      }, refreshInterval);
+
+    }
+
+
+    function getHistory(segundosAntes){
+      getLastUpdate(function(lastUpd) {
+        var Offset=lastUpd - (segundosAntes * 1000);
+        plotOffsetPoints(Offset, getSegundosantes);
+      });
+    }
+
+    function getSegundosAntes(timeReference) {
+      getLastUpdate(function(lastUpd) {
+        var segundosAntes=(lastUpd - timeReference)/ 1000;
+        if  (segundosAntes>=0){
+          var Offset=lastUpd - (segundosAntes * 1000);
+          plotOffsetPoints(Offset, getSegundosAntes);
+        }else{
+          continuousUpdate();
+        }
+      });
+    }
+
+
+    function plotOffsetPoints(Offset, callback) {
+      console.log("http://" + API_USER + ":" + API_PASS+ "@" + API_URI + "/sub/" + API_USER + "/" + API_CHANNEL + "?offset="+ String(Offset));
+      //faço um subscribe com offset de (lastUpdate - secondsOffset)
+      return $.ajax({
+          url: "http://" + API_USER + ":" + API_PASS+ "@" + API_URI + "/sub/" + API_USER + "/" + API_CHANNEL + "?offset="+ String(Offset),
+          dataType: 'jsonp',
+          success:function(data) {
+            if(plotedPoints==0){
+              if (data.length>0){
+                initChart(data);
+                callback(data[data.length-1].meta.timestamp);
+              }
+            }else{
+            //  if (data.length>0){
+                plotNewData(data);
+                callback(data[data.length-1].meta.timestamp);
+              //}
+            }
+
+          }
+      });
+    }
+
+
+
+      function getLastUpdate(callback) {
+        $.ajax({
+            url: "http://" + API_USER + ":" + API_PASS+ "@" + API_URI + "/sub/" + API_USER + "/" + API_CHANNEL,
+            type: 'GET',
+            dataType: 'jsonp',
+            success:function(data) {
+              lastUpd=data[0].meta.timestamp;
+              callback(lastUpd);
             }
         });
       }
 
+
+
+
       //PLOTAR UMA LINHA NO TEMPO DE UM ARRAY JSON
-      function plotPoints(jsonarray) {
+      function initChart(jsonarray) {
+        plotedPoints=plotedPoints+jsonarray.length;
         //c3.js é uma biblioteca para plotar gráficos
         //veja a documentação do C3 em http://c3js.org/reference.html e exemplos em http://c3js.org/examples.html
         chart = c3.generate({
@@ -173,43 +242,33 @@
       }
 
 
-      //***
-      //3o Chamada ciclica para a plataforma. A repetição é dada por refreshInterval
-      setInterval(function(){
-          $.ajax({
-
-            url: "https://" + API_USER +  ":" + API_PASS +"@" + API_URI+ "/sub/" + API_USER +"/" + API_CHANNEL,
-            type: 'GET',
-            dataType: 'jsonp',
-            success:function(data) {
-              handleNewData(data);
-            }
-        })
-      }, refreshInterval);
 
 
-
-      function handleNewData(data){
+      function plotNewData(jsonarray){
         //só plota se o timestamp do ultimo dado retornado for diferente
-        if (data[0].meta.timestamp > lastUpdate) {
+        if (jsonarray[0].meta.timestamp >lastUpdate) {
+          plotedPoints=plotedPoints+jsonarray.length;
+          var len;
+          if(plotedPoints>100){
+            len=1;
+          }else{
+            len=0;
+          }
 
           //flow é uma função do c3.js que adiciona pontos novos a um gráfico já existente
           chart.flow({
-            json:data,
+            json:jsonarray,
                 keys: {
                   x: chart_XData, //dados do eixo X
                   value: [chart_YData] ,//dados do eixo Y
                 },
-                length: 1 //indica que a cada ponto novo, o mais antigo deve ser descartado
+                length:len //indica que a cada ponto novo, o mais antigo deve ser descartado
             //,duration: 200//tempo do efeito especial na hora de mostrar o gráfico
           });
 
         }
-        //atualiza a variável lastUpdate
-        lastUpdate=data[0].meta.timestamp;
-
         //CÓDIGO NECESSÁRIO PARA ATUALIZAR O GRÁFICO
-        chart.refresh();
+        //chart.refresh();
       }
 
     }

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Imput teste</title>
+
+  </head>
+
+  <body>
+
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <script type="text/javascript">
+      let count=0;
+
+      window.onload = function () {
+        load();
+      }
+
+
+      function load(){
+        var refreshInterval=4000; //de quanto em quanto tempo o ajax deve consultar novamente a plataforma em milissegundos
+        var API_URI="api.demo.konkerlabs.net";//domínio do servidor api da konker
+        var API_USER="3epd20vk4ct8";//usuário do device
+        var API_PASS="mj25Vpa8womQ";//senha do device
+        var API_CHANNEL="teste";//canal de subscrição
+        //função que plota um gráfico de linha no tempo
+        loopPostData(refreshInterval,
+          API_URI,
+          API_USER,
+          API_PASS,
+          API_CHANNEL);
+        }
+
+
+    ////////////////////////////////////////////////////////////////////////////////
+    /// IMPLEMENTAÇÃO DA FUNÇÃO DE PLOTAGEM
+
+        function loopPostData(refreshInterval,
+                                API_URI,
+                                API_USER,
+                                API_PASS,
+                                API_CHANNEL) {
+
+
+          setInterval(postData2, refreshInterval);
+        }
+
+
+
+
+
+
+        function postData(data, API_USER, API_PASS, API_URI, API_USER, API_CHANNEL) {
+            document.getElementById("div_mensagem").innerHTML = count;
+            var settings = {
+              "async": true,
+              "crossDomain": true,
+              "url": "https://" + API_USER + ":" + API_PASS+ "@" + API_URI + "/sub/" + API_USER + "/" + API_CHANNEL,
+              "method": "POST",
+              "dataType": "jsonp",
+              "headers": {
+                "content-type": "application/json",
+                "cache-control": "no-cache",
+              },
+              "processData": false,
+              "data": "{\"val1\":123}"
+
+            }
+
+            $.ajax(settings).done(function (response) {
+              console.log(response);
+            });
+            count++;
+        }
+
+
+
+  function postData2(){
+
+    $.ajax({
+      async: true,
+      url: "http://3epd20vk4ct8:mj25Vpa8womQ@api.demo.konkerlabs.net/pub/3epd20vk4ct8/teste",
+      method: "POST",
+      processData: false,
+      data: JSON.stringify({"val1":123}),
+      tryCount : 0,
+      retryLimit : 3,
+      headers: {
+        "content-type": "application/json",
+      },
+      error : function(xhr, textStatus, errorThrown ) {
+          if (textStatus == 'timeout') {
+              this.tryCount++;
+              if (this.tryCount <= this.retryLimit) {
+                  //try again
+                  $.ajax(this);
+                  return;
+              }
+              return;
+          }
+          if (xhr.status == 500) {
+              //handle error
+          } else {
+              //handle error
+          }
+      }
+    });
+  }
+
+
+
+
+
+    </script>
+
+    <div id="div_mensagem"></div>
+  </body>
+</html>
