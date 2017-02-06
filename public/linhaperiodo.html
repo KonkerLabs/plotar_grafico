@@ -39,8 +39,12 @@
       var API_USER="qsvsjr79epn9";//usuário do device <<<TROQUE PELO SEU DEVICE
       var API_PASS="xkpXkyio7noV";//senha do device<<<TROQUE PELO SEU DEVICE
 
-
       var API_CHANNEL="out";//canal de subscrição
+
+      //'2012.08.10 12:00:00'
+      var chart_PerioInicial="2017.02.06 15:10:00"; //unidade mostrada no tooltip
+      var chart_PerioFinal="2017.02.06 15:20:00"; //unidade mostrada no tooltip
+
       var chart_bindToId="chartContainer";//id da <div> em que o gráfico será plotado
       var chart_XData="meta[timestamp]";//item do json correspondente aos dados do eixo X
       var chart_XLabel="Tempo";//nome do eixo X
@@ -51,12 +55,15 @@
       var chart_TooltipUnit="°C"; //unidade mostrada no tooltip
 
 
+
       //função que plota um gráfico de linha no tempo
       plotKonkerTimeseriesChart(refreshInterval,
         API_URI,
         API_USER,
         API_PASS,
         API_CHANNEL,
+        chart_PerioInicial,
+        chart_PerioFinal,
         chart_bindToId,
         chart_XData,
         chart_XLabel,
@@ -81,6 +88,8 @@
                             API_USER,
                             API_PASS,
                             API_CHANNEL,
+                            chart_PerioInicial,
+                            chart_PerioFinal,
                             chart_bindToId,
                             chart_XData,
                             chart_XLabel,
@@ -96,11 +105,12 @@
       //***
 
       var lastUpdateOffset=0;
+      var startDate=new Date(chart_PerioInicial).getTime();// * 1000
+      var endDate= new Date(chart_PerioFinal).getTime();// * 1000
 
 
 
-    getHistory(100); //83
-
+    getSegundosAntes(startDate);
 
 
 
@@ -115,7 +125,7 @@
             dataType: 'jsonp',
             success:function(data) {
 
-              plotNewData(data,100);
+              plotNewData(data,0);
               lastUpdate= data[data.length-1].meta.timestamp;
 
             }
@@ -128,7 +138,7 @@
     function getHistory(segundosAntes){
       getLastUpdate(function(lastUpd) {
         var Offset=lastUpd - (segundosAntes * 1000);
-        plotOffsetPoints(Offset, getSegundosAntes);
+        plotOffsetPoints(Offset, getSegundosantes);
       });
     }
 
@@ -138,8 +148,6 @@
         if  (segundosAntes>=0){
           var Offset=lastUpd - (segundosAntes * 1000);
           plotOffsetPoints(Offset, getSegundosAntes);
-        }else{
-          continuousUpdate();
         }
       });
     }
@@ -152,15 +160,31 @@
           url: "http://" + API_USER + ":" + API_PASS+ "@" + API_URI + "/sub/" + API_USER + "/" + API_CHANNEL + "?offset="+ String(Offset),
           dataType: 'jsonp',
           success:function(data) {
+            var endPeriod=false;
+            if(data[data.length-1].meta.timestamp>endDate){
+              for (var i=0;i < data.length; i++){
+                  if (data[i].meta.timestamp>endDate){
+                    data=data.splice(i, data.length-i);
+                    endPeriod=true;
+                    break;
+                  }
+              }
+            }
+
+
             if(plotedPoints==0){
               if (data.length>0){
                 initChart(data);
-                callback(data[data.length-1].meta.timestamp);
+                if (endPeriod==false){
+                  callback(data[data.length-1].meta.timestamp);
+                }
               }
             }else{
             //  if (data.length>0){
-                plotNewData(data,100);
-                callback(data[data.length-1].meta.timestamp);
+                plotNewData(data,0);
+                if (endPeriod==false){
+                  callback(data[data.length-1].meta.timestamp);
+                }
               //}
             }
 
@@ -240,7 +264,6 @@
           }
         });
       }
-
 
 
 
