@@ -303,9 +303,6 @@
         //chart.refresh();
       }
 
-
-
-
     }
 
 
@@ -403,7 +400,6 @@
 
 
     function urlExists(url, bindID, callback){
-      if()
       $.ajax({
         url: url,
         success: function(response, status, xhr){
@@ -476,10 +472,10 @@
 
     <div id="data" style="width:100%; height:280px"></div>
     <div id="chartContainer" style="width:100%; height:280px"></div>
-    Server: <input type="text" id="inputURI" onchange="urlExists(document.getElementById('inputURI').value,'resultURL',showMsg)"><div id="resultURL"></div>
-    Device user: <input type="text" id="inputUser" onchange="jsonOK(fullJsonpURL(),'resultJSONp',showMsg)">
-    Device password: <input type="text" id="inputPassword" onchange="jsonOK(fullJsonpURL(),'resultJSONp',showMsg)">
-    <div id="resultJSONp"></div>
+    Server: <input type="text" id="inputURI" onchange="urlExists(document.getElementById('inputURI').value,'resultURL',showMsg)">
+    Device user: <input type="text" id="inputUser" onchange="urlExists(fullJsonpURL(),'resultURL',showMsg)">
+    Device password: <input type="text" id="inputPassword" onchange="urlExists(fullJsonpURL(),'resultURL',showMsg)">
+    <div id="resultURL"></div>
 
 
     <div>
@@ -503,6 +499,7 @@
     Dado: <select id="list" onchange="updateList(jsonData,document.getElementById('list')[0].value + ',' + document.getElementById('list').value);">
           <option selected disabled>Escolha o caminho JSON</option>
     </select><a href="javascript:updateList(jsonData,'0')">Reload</a>
+    Nome da linha: <input type="text" id="inputNomeLinha" >
     Label do eixo Y: <input type="text" id="inputYLabel" >
     Unidade do eixo Y: <input type="text" id="inputYUnit">
     Formato do tempo: <input type="text" id="inputFormatoTempo"  value="%H:%M:%S">
