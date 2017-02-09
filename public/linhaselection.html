@@ -83,13 +83,13 @@
         "url": url,
         "method": "GET",
         "headers": {
-          "authorization": "Basic " + btoa(username + ":" + password),
-          "cache-control": "no-cache",
-          success:function(data) {
-            callback(data);
-          }
+          "authorization": "Basic " + btoa(username + ":" + password)
+        },
+        success:function(data) {
+          callback(data);
         }
       }
+
 
       $.ajax(settings).done(function (response) {
         console.log(response);
@@ -128,7 +128,12 @@
 
 
 
-    getSegundosAntes(startDate);
+
+    if (startDate==0){
+      getHistory(100);
+    }else{
+      getSegundosAntes(startDate);
+    }
 
 
 
@@ -151,16 +156,18 @@
     function getHistory(segundosAntes){
       getLastUpdate(function(lastUpd) {
         var Offset=lastUpd - (segundosAntes * 1000);
-        plotOffsetPoints(Offset, getSegundosantes);
+        plotOffsetPoints(Offset, getSegundosAntes);
       });
     }
 
     function getSegundosAntes(timeReference) {
       getLastUpdate(function(lastUpd) {
         var segundosAntes=(lastUpd - timeReference)/ 1000;
-        if  (segundosAntes>=0){
+        if  (segundosAntes>0){
           var Offset=lastUpd - (segundosAntes * 1000);
           plotOffsetPoints(Offset, getSegundosAntes);
+        }else if (endDate==0){
+          continuousUpdate();
         }
       });
     }
@@ -171,14 +178,15 @@
       getLastData(API_URL + "?offset="+ String(Offset), API_USER, API_PASS,
         function(data) {
           var endPeriod=false;
-          if(data[data.length-1].meta.timestamp>endDate){
+          if(data[data.length-1].meta.timestamp>endDate &&  endDate>0){
             for (var i=0;i < data.length; i++){
-                if (data[i].meta.timestamp>endDate){
-                  data=data.splice(i, data.length-i);
-                  endPeriod=true;
-                  break;
-                }
+              if (data[i].meta.timestamp>endDate){
+                data=data.splice(i, data.length-i);
+                endPeriod=true;
+                break;
+              }
             }
+
           }
 
           if(plotedPoints==0){
@@ -202,7 +210,7 @@
 
 
       function getLastUpdate(callback) {
-        getLastData(url, username, password,
+        getLastData(API_URL, API_USER, API_PASS,
           function(data) {
             jsonData=data;
             lastUpd=data[0].meta.timestamp;
@@ -219,17 +227,9 @@
         //c3.js é uma biblioteca para plotar gráficos
         //veja a documentação do C3 em http://c3js.org/reference.html e exemplos em http://c3js.org/examples.html
         chart = c3.generate({
-          transition: {
-             //duration: 200//tempo do efeito especial na hora de mostrar o gráfico
-          },
           bindto: "#" + chart_bindToId,//indica qual o ID da div em que o gráfico deve ser desenhado
-          zoom: {
-            enabled: true //permite ou não o zoom no gráfico
-          },
-
           data: {
             json:jsonarray,// dados json a serem plotados
-
             keys: {
               x: chart_XData,//item do json correspondente ao eixo X
               value: [chart_YData] ,//item do json correspondente ao eixo Y
@@ -238,6 +238,9 @@
               [chart_YData]: chart_LineName//nome da linha plotada
             }
 
+          },
+          zoom: {
+            enabled: true //permite ou não o zoom no gráfico
           },
           axis: {
             x: {
@@ -284,18 +287,21 @@
               len=0;
             }
           }else{
-            len=0;
+            len=1;
           }
 
           //flow é uma função do c3.js que adiciona pontos novos a um gráfico já existente
           chart.flow({
             json:jsonarray,
-                keys: {
-                  x: chart_XData, //dados do eixo X
-                  value: [chart_YData] ,//dados do eixo Y
-                },
-                length:len //indica que a cada ponto novo, o mais antigo deve ser descartado
-            //,duration: 200//tempo do efeito especial na hora de mostrar o gráfico
+            zoom: {
+              enabled: true //permite ou não o zoom no gráfico
+            },
+            keys: {
+              x: chart_XData, //dados do eixo X
+              value: [chart_YData] ,//dados do eixo Y
+            },
+            length:len //indica que a cada ponto novo, o mais antigo deve ser descartado
+        //,duration: 200//tempo do efeito especial na hora de mostrar o gráfico
           });
 
         }
@@ -356,13 +362,11 @@
         document.getElementById('inputNomeLinha').value=jsonPath;
 
         chart_YData="["  +jsonPath.replace("0,", "").replace(",", "][")+"]";
-        //API_URL="api.demo.konkerlabs.net";//domínio do servidor api da konker<<<TROQUE PELO DOMÍNIO QUE VOCÊ USA
-        //API_USER="2ba1poa554h7";//usuário do device <<<TROQUE PELO SEU DEVICE
-        //API_PASS="dRPH4ju0XVr2";//senha do device<<<TROQUE PELO SEU DEVICE
 
+        getParameters();
 
         //função que plota um gráfico de linha no tempo
-        plotKonkerTimeseriesChart(0.001,
+        plotKonkerTimeseriesChart(500,
           API_URL,
           API_USER,
           API_PASS,
@@ -399,28 +403,52 @@
     }
 
 
-    function urlExists(url, bindID, callback){
-      $.ajax({
-        url: url,
-        success: function(response, status, xhr){
-          var msg = "URL result: 200 OK";
-          callback(bindID,msg);
+    function urlExists(url, username, password, bindID, callback){
+
+      var settings = {
+        "async": true,
+        "crossDomain": true,
+        "url": url,
+        "method": "GET",
+        "headers": {
+          "authorization": "Basic " + btoa(username + ":" + password)
         },
-        error: function(call) {
-          callback(bindID,"URL result: " + call.status + " " + call.statusText);
-        }
+          success: function(response, status, xhr){
+            var msg = "URL result: 200 OK, JSON size: " + response.length;
+            callback(bindID,msg);
+            getLastData(API_URL, API_USER, API_PASS,function(data){jsonData=data;updateList(jsonData,'0');});
+          },
+          error: function(call) {
+            callback(bindID,"URL result: " + call.status + " " + call.statusText);
+          }
+
+      }
+
+      $.ajax(settings).done(function (response) {
+        console.log(response);
       });
     }
 
 
+    function checkConnection(){
+      API_URL=document.getElementById('inputURI').value;
+      API_USER=document.getElementById('inputUser').value;
+      API_PASS=document.getElementById('inputPassword').value;
+      urlExists(API_URL,API_USER,API_PASS,'resultURL',
+        function(bindID ,message){
+            document.getElementById(bindID).innerHTML=message;
+        }
+      );
+    }
 
-    function jsonOK(url, bindID, callback){
+    function urlJSONpOK(url, bindID, callback){
       $.ajax({
           url: url,
           dataType: 'jsonp',
           success: function(){
             var msg = "Check result: 200 OK";
             callback(bindID,msg);
+            getLastData(API_URL, API_USER, API_PASS,function(data){jsonData=data;updateList(jsonData,'0');});
           },
           error: function(call) {
             callback(bindID,"Check result: " + call.status + " " + call.statusText);
@@ -430,7 +458,7 @@
 
 
 
-    function fullJsonpURL(){
+    function getParameters(){
       API_URL=document.getElementById('inputURI').value;
       API_USER=document.getElementById('inputUser').value;
       API_PASS=document.getElementById('inputPassword').value;
@@ -446,16 +474,11 @@
         chart_PerioFinal=document.getElementById('inputPFim').value;//"2017.02.03 15:10:00";
       }
 
-
-
-
       chart_YLabel=document.getElementById('inputYLabel').value + document.getElementById('inputYUnit').value;//nome do eixo Y
       chart_LineName=document.getElementById('inputNomeLinha').value;//nome da linha plotada
       chart_Xformat=document.getElementById('inputFormatoTempo').value;//"%Y-%m-%d %H:%M:%S"; //formato dos dados do eixo X
       chart_TooltipUnit=document.getElementById('inputYUnit').value; //unidade mostrada no tooltip
 
-
-      return API_URL
     }
 
 
@@ -472,10 +495,13 @@
 
     <div id="data" style="width:100%; height:280px"></div>
     <div id="chartContainer" style="width:100%; height:280px"></div>
-    Server: <input type="text" id="inputURI" onchange="urlExists(document.getElementById('inputURI').value,'resultURL',showMsg)">
-    Device user: <input type="text" id="inputUser" onchange="urlExists(fullJsonpURL(),'resultURL',showMsg)">
-    Device password: <input type="text" id="inputPassword" onchange="urlExists(fullJsonpURL(),'resultURL',showMsg)">
+    Server: <input type="text" id="inputURI" onchange="checkConnection()">
+    Device user: <input type="text" id="inputUser" onchange="checkConnection()">
+    Device password: <input type="text" id="inputPassword" onchange="checkConnection()">
     <div id="resultURL"></div>
+    Selecione o item no JSON: <select id="list" onchange="updateList(jsonData,document.getElementById('list')[0].value + ',' + document.getElementById('list').value);">
+          <option selected disabled>Escolha o caminho JSON</option>
+    </select><a href="javascript:updateList(jsonData,'0')">Reload</a>
 
 
     <div>
@@ -496,9 +522,7 @@
         });
       });
 		</script>
-    Dado: <select id="list" onchange="updateList(jsonData,document.getElementById('list')[0].value + ',' + document.getElementById('list').value);">
-          <option selected disabled>Escolha o caminho JSON</option>
-    </select><a href="javascript:updateList(jsonData,'0')">Reload</a>
+
     Nome da linha: <input type="text" id="inputNomeLinha" >
     Label do eixo Y: <input type="text" id="inputYLabel" >
     Unidade do eixo Y: <input type="text" id="inputYUnit">
