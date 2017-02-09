@@ -39,8 +39,6 @@
       var API_USER="2ba1poa554h7";//usuário do device <<<TROQUE PELO SEU DEVICE
       var API_PASS="dRPH4ju0XVr2";//senha do device<<<TROQUE PELO SEU DEVICE
 
-      var API_CHANNEL="out";//canal de subscrição
-
       //'2012.08.10 12:00:00'
       var chart_PerioInicial="2017.02.02 15:10:00"; //unidade mostrada no tooltip
       var chart_PerioFinal="2017.02.03 15:10:00"; //unidade mostrada no tooltip
@@ -108,7 +106,6 @@
                             API_URL,
                             API_USER,
                             API_PASS,
-                            API_CHANNEL,
                             chart_PerioInicial,
                             chart_PerioFinal,
                             chart_bindToId,
@@ -205,16 +202,13 @@
 
 
       function getLastUpdate(callback) {
-        $.ajax({
-            url: "http://" + API_USER + ":" + API_PASS+ "@" + API_URL + "/sub/" + API_USER + "/" + API_CHANNEL,
-            type: 'GET',
-            dataType: 'jsonp',
-            success:function(data) {
-              jsonData=data;
-              lastUpd=data[0].meta.timestamp;
-              callback(lastUpd);
-            }
-        });
+        getLastData(url, username, password,
+          function(data) {
+            jsonData=data;
+            lastUpd=data[0].meta.timestamp;
+            callback(lastUpd);
+          }
+        );
       }
 
 
@@ -369,14 +363,12 @@
         //API_USER="2ba1poa554h7";//usuário do device <<<TROQUE PELO SEU DEVICE
         //API_PASS="dRPH4ju0XVr2";//senha do device<<<TROQUE PELO SEU DEVICE
 
-        //API_CHANNEL="out";//canal de subscrição
 
         //função que plota um gráfico de linha no tempo
         plotKonkerTimeseriesChart(0.001,
           API_URL,
           API_USER,
           API_PASS,
-          API_CHANNEL,
           chart_PerioInicial,
           chart_PerioFinal,
           chart_bindToId,
@@ -446,7 +438,6 @@
       API_URL=document.getElementById('inputURI').value;
       API_USER=document.getElementById('inputUser').value;
       API_PASS=document.getElementById('inputPassword').value;
-      API_CHANNEL=document.getElementById('inputCanal').value;
 
       if(document.getElementById('inputPIni').value==""){
         chart_PerioInicial=0;//"2017.02.02 15:10:00";
@@ -468,7 +459,7 @@
       chart_TooltipUnit=document.getElementById('inputYUnit').value; //unidade mostrada no tooltip
 
 
-      return "http://" + API_USER + ":" + API_PASS+ "@" + API_URL + "/sub/" + API_USER + "/" + API_CHANNEL
+      return API_URL
     }
 
 
@@ -488,7 +479,7 @@
     Server: <input type="text" id="inputURI" onchange="urlExists(document.getElementById('inputURI').value,'resultURL',showMsg)"><div id="resultURL"></div>
     Device user: <input type="text" id="inputUser" onchange="jsonOK(fullJsonpURL(),'resultJSONp',showMsg)">
     Device password: <input type="text" id="inputPassword" onchange="jsonOK(fullJsonpURL(),'resultJSONp',showMsg)">
-    Canal: <input type="text" id="inputCanal" onchange="jsonOK(fullJsonpURL(),'resultJSONp',showMsg)"><div id="resultJSONp"></div>
+    <div id="resultJSONp"></div>
 
 
     <div>
