@@ -50,7 +50,19 @@
     <div id="map"></div>
     <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
     <script type="text/javascript">
-
+    // Read a page's GET URL variables and return them as an associative array.
+    function getUrlVars()
+    {
+        var vars = [], hash;
+        var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+        for(var i = 0; i < hashes.length; i++)
+        {
+            hash = hashes[i].split('=');
+            vars.push(hash[0]);
+            vars[hash[0]] = hash[1];
+        }
+        return vars;
+    }
       //função do javascript que é chamada no carregamento da página
       window.onload = function () {
 
@@ -79,14 +91,15 @@
 
       //ALTERE AQUI COM SEUS DADOS
       var API_URI="api.demo.konkerlabs.net";//domínio do servidor api da konker<<<TROQUE PELO DOMÍNIO QUE VOCÊ USA
-      var API_USER="q610cf7v34pj";//usuário do device <<<TROQUE PELO SEU DEVICE
-      var API_PASS="brun3P6pX1Cb";//senha do device<<<TROQUE PELO SEU DEVICE
+      var API_USER="2ba1poa554h7";//"q610cf7v34pj";//usuário do device <<<TROQUE PELO SEU DEVICE
+      var API_PASS="dRPH4ju0XVr2";//"brun3P6pX1Cb";//senha do device<<<TROQUE PELO SEU DEVICE
 
-      var API_CHANNEL="local";//canal de subscrição
+      var API_CHANNEL="out";//canal de subscrição
 
       //'2012.08.10 12:00:00'
       var chart_PerioInicial="2017.02.02 15:10:00"; //unidade mostrada no tooltip
       var chart_PerioFinal="2017.02.03 15:10:00"; //unidade mostrada no tooltip
+
 
       var chart_bindToId="chartContainer";//id da <div> em que o gráfico será plotado
 
@@ -283,7 +296,7 @@
         setMapOnAll(null);
         if (jsonarray!=null){
           for( i = 0; i < jsonarray.length; i++) {
-              addLatLng(jsonarray[i].data.latitude, jsonarray[i].data.longitude);
+              addLatLng(jsonarray[i].data.Latitude, jsonarray[i].data.Longitude);
           }
 
           var marker = new google.maps.Marker({
@@ -344,10 +357,13 @@
         //chart.refresh();
       }
 
+
     }
+
+
     </script>
     <script async defer
-        src="https://maps.googleapis.com/maps/api/js?key=<GOOGLEAPIKEY>&libraries=visualization">
+        src="https://maps.googleapis.com/maps/api/js?key=<CHAVE_API_GOOGLE>&libraries=visualization">
     </script>
   </body>
 </html>

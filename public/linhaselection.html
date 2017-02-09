@@ -1,0 +1,521 @@
+<html>
+  <head>
+    <link href="./css/c30.css" rel="stylesheet" type="text/css">
+
+
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <script src="./bower_components/c3/c3.js"></script>
+     <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+     <script type="text/javascript" src="../jquery-simple-datetimepicker/jquery.simple-dtpicker.js"></script>
+   	<link type="text/css" href="../jquery-simple-datetimepicker/jquery.simple-dtpicker.css" rel="stylesheet" />
+    <script type="text/javascript">
+
+
+          // Dado este ponto de conexão informado na plataforma:
+          // http://api.demo.konkerlabs.net:443/sub/fsoh2687ru3m/{canal}
+          // Fiz um roteamento na plataforma e o canal de saida que configurei é /out
+          // O usuário deste gerado pela plataforma foi: fsoh2687ru3m
+          // A senha gerada foi: SENHA_DO_DEVICE
+          // Então a chamada GET pode ser feita da seguinte forma:
+          /*
+          $.ajax({
+          url: "http://fsoh2687ru3m:SENHA_DO_DEVICE@api.demo.konkerlabs.net/sub/fsoh2687ru3m/out",
+          type: 'GET',
+          dataType: 'jsonp',
+          success:function(data) {
+        }
+      });*/
+
+      ///
+      //AQUI NESTE EXEMEPLO FIZ UMA FUNÇÃO EM QUE PLOTA UM GRÁFICO QUE SE ATUALIZA SOZINHO
+      //Valores a serem passados para esta função:
+      //variáveis de configuração de conexão com a plataforma KONKER
+      //e configuração do gráfico a ser plotado
+      //http://api.demo.konkerlabs.net:80/sub/qsvsjr79epn9/out
+      var refreshInterval=1000; //de quanto em quanto tempo o ajax deve consultar novamente a plataforma em milissegundos
+
+      //ALTERE AQUI COM SEUS DADOS
+      var API_URL="api.demo.konkerlabs.net";//domínio do servidor api da konker<<<TROQUE PELO DOMÍNIO QUE VOCÊ USA
+      var API_USER="2ba1poa554h7";//usuário do device <<<TROQUE PELO SEU DEVICE
+      var API_PASS="dRPH4ju0XVr2";//senha do device<<<TROQUE PELO SEU DEVICE
+
+      var API_CHANNEL="out";//canal de subscrição
+
+      //'2012.08.10 12:00:00'
+      var chart_PerioInicial="2017.02.02 15:10:00"; //unidade mostrada no tooltip
+      var chart_PerioFinal="2017.02.03 15:10:00"; //unidade mostrada no tooltip
+
+      var chart_bindToId="chartContainer";//id da <div> em que o gráfico será plotado
+      var chart_XData="meta[timestamp]";//item do json correspondente aos dados do eixo X
+      var chart_XLabel="Tempo";//nome do eixo X
+      var chart_YData="[data][Temperatura]";//item do json correspondente aos dados do eixo Y
+      var chart_YLabel="Temperatura °C";//nome do eixo Y
+      var chart_LineName="Temperatura";//nome da linha plotada
+      var chart_Xformat="%H:%M:%S";//"%Y-%m-%d %H:%M:%S"; //formato dos dados do eixo X
+      var chart_TooltipUnit="°C"; //unidade mostrada no tooltip
+
+      var jsonData=[];
+
+
+      //função do javascript que é chamada no carregamento da página
+      window.onload = function () {
+
+      //getLastData(url, username, password,function(data){jsonData=data;updateList(jsonData,'0');});
+
+    }
+
+
+    function getLastDataP(url, username, password, callback) {
+      var arrurl=url.split("/");
+      "http://" + username +  ":" + password +"@" + arrurl[2]+ "/sub/" + username +"/" + arrurl[arrurl.length-1]
+      $.ajax({
+          url: URL,
+          type: 'GET',
+          dataType: 'jsonp',
+          success:function(data) {
+            callback(data);
+          }
+      });
+    }
+
+    function getLastData(url, username, password, callback){
+      var settings = {
+        "async": true,
+        "crossDomain": true,
+        "url": url,
+        "method": "GET",
+        "headers": {
+          "authorization": "Basic " + btoa(username + ":" + password),
+          "cache-control": "no-cache",
+          success:function(data) {
+            callback(data);
+          }
+        }
+      }
+
+      $.ajax(settings).done(function (response) {
+        console.log(response);
+      });
+    }
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+/// IMPLEMENTAÇÃO DA FUNÇÃO DE PLOTAGEM
+
+    function plotKonkerTimeseriesChart(refreshInterval,
+                            API_URL,
+                            API_USER,
+                            API_PASS,
+                            API_CHANNEL,
+                            chart_PerioInicial,
+                            chart_PerioFinal,
+                            chart_bindToId,
+                            chart_XData,
+                            chart_XLabel,
+                            chart_YData,
+                            chart_YLabel,
+                            chart_LineName,
+                            chart_TooltipUnit,
+                            chart_Xformat) {
+      var lastUpdate=0;
+      var chart;
+      var plotedPoints=0;
+
+      //***
+
+      var lastUpdateOffset=0;
+      var startDate=new Date(chart_PerioInicial).getTime();// * 1000
+      var endDate= new Date(chart_PerioFinal).getTime();// * 1000
+
+
+
+    getSegundosAntes(startDate);
+
+
+
+    function continuousUpdate(){
+      //***
+      //3o Chamada ciclica para a plataforma. A repetição é dada por refreshInterval
+
+      setInterval(function(){
+          getLastData(API_URL, API_USER, API_PASS,
+            function(data) {
+              plotNewData(data,0);
+              lastUpdate= data[data.length-1].meta.timestamp;
+            }
+          )
+      }, refreshInterval);
+
+    }
+
+
+    function getHistory(segundosAntes){
+      getLastUpdate(function(lastUpd) {
+        var Offset=lastUpd - (segundosAntes * 1000);
+        plotOffsetPoints(Offset, getSegundosantes);
+      });
+    }
+
+    function getSegundosAntes(timeReference) {
+      getLastUpdate(function(lastUpd) {
+        var segundosAntes=(lastUpd - timeReference)/ 1000;
+        if  (segundosAntes>=0){
+          var Offset=lastUpd - (segundosAntes * 1000);
+          plotOffsetPoints(Offset, getSegundosAntes);
+        }
+      });
+    }
+
+
+    function plotOffsetPoints(Offset, callback) {
+
+      getLastData(API_URL + "?offset="+ String(Offset), API_USER, API_PASS,
+        function(data) {
+          var endPeriod=false;
+          if(data[data.length-1].meta.timestamp>endDate){
+            for (var i=0;i < data.length; i++){
+                if (data[i].meta.timestamp>endDate){
+                  data=data.splice(i, data.length-i);
+                  endPeriod=true;
+                  break;
+                }
+            }
+          }
+
+          if(plotedPoints==0){
+            if (data.length>0){
+              initChart(data);
+              if (endPeriod==false){
+                callback(data[data.length-1].meta.timestamp);
+              }
+            }
+          }else{
+          //  if (data.length>0){
+              plotNewData(data,0);
+              if (endPeriod==false){
+                callback(data[data.length-1].meta.timestamp);
+              }
+            //}
+          }
+        })
+    }
+
+
+
+      function getLastUpdate(callback) {
+        $.ajax({
+            url: "http://" + API_USER + ":" + API_PASS+ "@" + API_URL + "/sub/" + API_USER + "/" + API_CHANNEL,
+            type: 'GET',
+            dataType: 'jsonp',
+            success:function(data) {
+              jsonData=data;
+              lastUpd=data[0].meta.timestamp;
+              callback(lastUpd);
+            }
+        });
+      }
+
+
+
+      //PLOTAR UMA LINHA NO TEMPO DE UM ARRAY JSON
+      function initChart(jsonarray) {
+        plotedPoints=plotedPoints+jsonarray.length;
+        //c3.js é uma biblioteca para plotar gráficos
+        //veja a documentação do C3 em http://c3js.org/reference.html e exemplos em http://c3js.org/examples.html
+        chart = c3.generate({
+          transition: {
+             //duration: 200//tempo do efeito especial na hora de mostrar o gráfico
+          },
+          bindto: "#" + chart_bindToId,//indica qual o ID da div em que o gráfico deve ser desenhado
+          zoom: {
+            enabled: true //permite ou não o zoom no gráfico
+          },
+
+          data: {
+            json:jsonarray,// dados json a serem plotados
+
+            keys: {
+              x: chart_XData,//item do json correspondente ao eixo X
+              value: [chart_YData] ,//item do json correspondente ao eixo Y
+            },
+            names: {
+              [chart_YData]: chart_LineName//nome da linha plotada
+            }
+
+          },
+          axis: {
+            x: {
+              type : 'timeseries',//tipo do gráfico a ser plotado
+              tick: {
+                format: chart_Xformat,//formato dos dados no eixo X
+                rotate: 45//rotação do texto dos dados no eixo X
+              },
+              label: {
+                text: chart_XLabel,//nome do eixo X
+                position: 'inner-middle'//posição do nome do eixo X
+              }
+            },
+
+            y: {
+              label: {
+                text: chart_YLabel,//nome do eixo Y
+                position: 'outer-middle'//posição do nome do eixo Y
+              }
+            }
+          },
+
+          tooltip: {
+            show: true,
+             format: {
+               value: function (value, ratio, id, index) { return value + " " + chart_TooltipUnit; }
+             }
+          }
+        });
+      }
+
+
+
+      //passar size=0 para não limitar o numero de pontos máximos para plotar
+      function plotNewData(jsonarray, size){
+        //só plota se o timestamp do ultimo dado retornado for diferente
+        if (jsonarray[0].meta.timestamp >lastUpdate) {
+          plotedPoints=plotedPoints+jsonarray.length;
+          var len;
+          if(size>0){
+            if(plotedPoints>size){
+              len=1;
+            }else{
+              len=0;
+            }
+          }else{
+            len=0;
+          }
+
+          //flow é uma função do c3.js que adiciona pontos novos a um gráfico já existente
+          chart.flow({
+            json:jsonarray,
+                keys: {
+                  x: chart_XData, //dados do eixo X
+                  value: [chart_YData] ,//dados do eixo Y
+                },
+                length:len //indica que a cada ponto novo, o mais antigo deve ser descartado
+            //,duration: 200//tempo do efeito especial na hora de mostrar o gráfico
+          });
+
+        }
+        //CÓDIGO NECESSÁRIO PARA ATUALIZAR O GRÁFICO
+        //chart.refresh();
+      }
+
+
+
+
+    }
+
+
+//getKeys(data[0]["meta"]["timestamp"])
+    var getKeys = function(obj){
+     var keys = [];
+
+       for(var key in obj){
+          keys.push(key);
+       }
+
+       if (keys.length!=0){
+        return keys;
+       }else{
+        return obj;
+      }
+    }
+
+
+    function updateList(jsonInput, jsonPath){
+      var listID="list";
+
+      var pathArr=jsonPath.split(",");
+
+      var jsonAux=jsonInput;
+      for (var i = 0; i < pathArr.length; i++) {
+        jsonAux=jsonAux[pathArr[i]];
+      }
+      jsonInput=jsonAux;
+
+      var keyArr=getKeys(jsonInput);
+      var updatedValue=keyArr.toString();
+
+
+      var select = document.getElementById(listID);
+      select.innerHTML = "";
+
+
+      var opt = jsonPath;
+      var el = document.createElement("option");
+      el.textContent = jsonPath;
+      el.value = jsonPath;
+      select.appendChild(el);
+
+      document.getElementById(listID)[0].selected="selected";
+      document.getElementById(listID)[0].disabled="disabled"
+      document.getElementById(listID)[0].innerHTML = jsonPath;
+
+      //se chegou no ultimo item do json, ou seja já é o dado que se quer plotar
+      if (!(keyArr.constructor === Array)){
+        document.getElementById('inputNomeLinha').value=jsonPath;
+
+        chart_YData="["  +jsonPath.replace("0,", "").replace(",", "][")+"]";
+        //API_URL="api.demo.konkerlabs.net";//domínio do servidor api da konker<<<TROQUE PELO DOMÍNIO QUE VOCÊ USA
+        //API_USER="2ba1poa554h7";//usuário do device <<<TROQUE PELO SEU DEVICE
+        //API_PASS="dRPH4ju0XVr2";//senha do device<<<TROQUE PELO SEU DEVICE
+
+        //API_CHANNEL="out";//canal de subscrição
+
+        //função que plota um gráfico de linha no tempo
+        plotKonkerTimeseriesChart(0.001,
+          API_URL,
+          API_USER,
+          API_PASS,
+          API_CHANNEL,
+          chart_PerioInicial,
+          chart_PerioFinal,
+          chart_bindToId,
+          chart_XData,
+          chart_XLabel,
+          chart_YData,
+          chart_YLabel,
+          chart_LineName,
+          chart_TooltipUnit,
+          chart_Xformat)
+
+        return;
+      }
+
+      //data[0]["meta"].timestamp
+      for (var i = 0; i < keyArr.length; i++) {
+        var opt = keyArr[i];
+        var el = document.createElement("option");
+        el.textContent = opt;
+        el.value = opt;
+        select.appendChild(el);
+      }
+
+
+
+    }
+
+
+    function showMsg(bindID ,message){
+        document.getElementById(bindID).innerHTML=message;
+    }
+
+
+    function urlExists(url, bindID, callback){
+      if()
+      $.ajax({
+        url: url,
+        success: function(response, status, xhr){
+          var msg = "URL result: 200 OK";
+          callback(bindID,msg);
+        },
+        error: function(call) {
+          callback(bindID,"URL result: " + call.status + " " + call.statusText);
+        }
+      });
+    }
+
+
+
+    function jsonOK(url, bindID, callback){
+      $.ajax({
+          url: url,
+          dataType: 'jsonp',
+          success: function(){
+            var msg = "Check result: 200 OK";
+            callback(bindID,msg);
+          },
+          error: function(call) {
+            callback(bindID,"Check result: " + call.status + " " + call.statusText);
+          }
+      });
+    }
+
+
+
+    function fullJsonpURL(){
+      API_URL=document.getElementById('inputURI').value;
+      API_USER=document.getElementById('inputUser').value;
+      API_PASS=document.getElementById('inputPassword').value;
+      API_CHANNEL=document.getElementById('inputCanal').value;
+
+      if(document.getElementById('inputPIni').value==""){
+        chart_PerioInicial=0;//"2017.02.02 15:10:00";
+      }else{
+        chart_PerioInicial=document.getElementById('inputPIni').value;//"2017.02.02 15:10:00";
+      }
+      if(document.getElementById('inputPIni').value==""){
+        chart_PerioFinal=0;//"2017.02.03 15:10:00";
+      }else{
+        chart_PerioFinal=document.getElementById('inputPFim').value;//"2017.02.03 15:10:00";
+      }
+
+
+
+
+      chart_YLabel=document.getElementById('inputYLabel').value + document.getElementById('inputYUnit').value;//nome do eixo Y
+      chart_LineName=document.getElementById('inputNomeLinha').value;//nome da linha plotada
+      chart_Xformat=document.getElementById('inputFormatoTempo').value;//"%Y-%m-%d %H:%M:%S"; //formato dos dados do eixo X
+      chart_TooltipUnit=document.getElementById('inputYUnit').value; //unidade mostrada no tooltip
+
+
+      return "http://" + API_USER + ":" + API_PASS+ "@" + API_URL + "/sub/" + API_USER + "/" + API_CHANNEL
+    }
+
+
+
+
+
+
+
+    </script>
+
+
+  </head>
+  <body>
+
+    <div id="data" style="width:100%; height:280px"></div>
+    <div id="chartContainer" style="width:100%; height:280px"></div>
+    Server: <input type="text" id="inputURI" onchange="urlExists(document.getElementById('inputURI').value,'resultURL',showMsg)"><div id="resultURL"></div>
+    Device user: <input type="text" id="inputUser" onchange="jsonOK(fullJsonpURL(),'resultJSONp',showMsg)">
+    Device password: <input type="text" id="inputPassword" onchange="jsonOK(fullJsonpURL(),'resultJSONp',showMsg)">
+    Canal: <input type="text" id="inputCanal" onchange="jsonOK(fullJsonpURL(),'resultJSONp',showMsg)"><div id="resultJSONp"></div>
+
+
+    <div>
+    Data início: <input type="text" id="inputPIni" value="" readonly="readonly"></div>
+    <div>
+    Data Fim: <input type="text" id="inputPFim" value="" readonly="readonly"></div>
+		<script type="text/javascript">
+			$(function(){
+				$('*[id=inputPIni]').appendDtpicker({
+          "autodateOnStart": false,
+					"minuteInterval": 15
+				});
+			});
+      $(function(){
+        $('*[id=inputPFim]').appendDtpicker({
+          "autodateOnStart": false,
+          "minuteInterval": 15
+        });
+      });
+		</script>
+    Dado: <select id="list" onchange="updateList(jsonData,document.getElementById('list')[0].value + ',' + document.getElementById('list').value);">
+          <option selected disabled>Escolha o caminho JSON</option>
+    </select><a href="javascript:updateList(jsonData,'0')">Reload</a>
+    Label do eixo Y: <input type="text" id="inputYLabel" >
+    Unidade do eixo Y: <input type="text" id="inputYUnit">
+    Formato do tempo: <input type="text" id="inputFormatoTempo"  value="%H:%M:%S">
+
+
+  </body>
+</html>

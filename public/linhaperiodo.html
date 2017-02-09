@@ -7,7 +7,7 @@
     <script src="./bower_components/c3/c3.js"></script>
      <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
     <script type="text/javascript">
-
+      var jsonData=[];
       //função do javascript que é chamada no carregamento da página
       window.onload = function () {
 
@@ -36,19 +36,19 @@
 
       //ALTERE AQUI COM SEUS DADOS
       var API_URI="api.demo.konkerlabs.net";//domínio do servidor api da konker<<<TROQUE PELO DOMÍNIO QUE VOCÊ USA
-      var API_USER="qsvsjr79epn9";//usuário do device <<<TROQUE PELO SEU DEVICE
-      var API_PASS="xkpXkyio7noV";//senha do device<<<TROQUE PELO SEU DEVICE
+      var API_USER="2ba1poa554h7";//usuário do device <<<TROQUE PELO SEU DEVICE
+      var API_PASS="dRPH4ju0XVr2";//senha do device<<<TROQUE PELO SEU DEVICE
 
       var API_CHANNEL="out";//canal de subscrição
 
       //'2012.08.10 12:00:00'
-      var chart_PerioInicial="2017.02.06 15:10:00"; //unidade mostrada no tooltip
-      var chart_PerioFinal="2017.02.06 15:20:00"; //unidade mostrada no tooltip
+      var chart_PerioInicial="2017.02.02 15:10:00"; //unidade mostrada no tooltip
+      var chart_PerioFinal="2017.02.03 15:10:00"; //unidade mostrada no tooltip
 
       var chart_bindToId="chartContainer";//id da <div> em que o gráfico será plotado
       var chart_XData="meta[timestamp]";//item do json correspondente aos dados do eixo X
       var chart_XLabel="Tempo";//nome do eixo X
-      var chart_YData="data[val1]";//item do json correspondente aos dados do eixo Y
+      var chart_YData="data[Temperatura]";//item do json correspondente aos dados do eixo Y
       var chart_YLabel="Temperatura °C";//nome do eixo Y
       var chart_LineName="Temperatura";//nome da linha plotada
       var chart_Xformat="%H:%M:%S";//"%Y-%m-%d %H:%M:%S"; //formato dos dados do eixo X
@@ -200,6 +200,7 @@
             type: 'GET',
             dataType: 'jsonp',
             success:function(data) {
+              jsonData=data;
               lastUpd=data[0].meta.timestamp;
               callback(lastUpd);
             }
@@ -299,19 +300,22 @@
         //chart.refresh();
       }
 
+
+
+
     }
+
+
+
     </script>
-
-
-
-
-
 
 
   </head>
   <body>
+
     <div id="data" style="width:100%; height:280px"></div>
     <div id="chartContainer" style="width:100%; height:280px"></div>
+
 
   </body>
 </html>
