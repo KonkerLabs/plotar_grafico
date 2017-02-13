@@ -228,8 +228,15 @@
         //veja a documentação do C3 em http://c3js.org/reference.html e exemplos em http://c3js.org/examples.html
         chart = c3.generate({
           bindto: "#" + chart_bindToId,//indica qual o ID da div em que o gráfico deve ser desenhado
+          zoom: {
+            enabled: true //permite ou não o zoom no gráfico
+          },
+
           data: {
             json:jsonarray,// dados json a serem plotados
+            zoom: {
+              enabled: true //permite ou não o zoom no gráfico
+            },
             keys: {
               x: chart_XData,//item do json correspondente ao eixo X
               value: [chart_YData] ,//item do json correspondente ao eixo Y
@@ -238,9 +245,6 @@
               [chart_YData]: chart_LineName//nome da linha plotada
             }
 
-          },
-          zoom: {
-            enabled: true //permite ou não o zoom no gráfico
           },
           axis: {
             x: {
@@ -296,12 +300,13 @@
             zoom: {
               enabled: true //permite ou não o zoom no gráfico
             },
-            keys: {
-              x: chart_XData, //dados do eixo X
-              value: [chart_YData] ,//dados do eixo Y
-            },
-            length:len //indica que a cada ponto novo, o mais antigo deve ser descartado
-        //,duration: 200//tempo do efeito especial na hora de mostrar o gráfico
+
+                keys: {
+                  x: chart_XData, //dados do eixo X
+                  value: [chart_YData] ,//dados do eixo Y
+                },
+                length:len //indica que a cada ponto novo, o mais antigo deve ser descartado
+            //,duration: 200//tempo do efeito especial na hora de mostrar o gráfico
           });
 
         }
@@ -474,7 +479,7 @@
         chart_PerioFinal=document.getElementById('inputPFim').value;//"2017.02.03 15:10:00";
       }
 
-      chart_YLabel=document.getElementById('inputYLabel').value + document.getElementById('inputYUnit').value;//nome do eixo Y
+      chart_YLabel=document.getElementById('inputYLabel').value + " " + document.getElementById('inputYUnit').value;//nome do eixo Y
       chart_LineName=document.getElementById('inputNomeLinha').value;//nome da linha plotada
       chart_Xformat=document.getElementById('inputFormatoTempo').value;//"%Y-%m-%d %H:%M:%S"; //formato dos dados do eixo X
       chart_TooltipUnit=document.getElementById('inputYUnit').value; //unidade mostrada no tooltip
